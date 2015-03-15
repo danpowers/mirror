@@ -23,7 +23,6 @@ from globusonline.transfer import api_client
 from globusonline.transfer.api_client import get_access_token
 
 def log_message(message, config_file_paths):
-
     print(message + "\n")
     with open(config_file_paths['log_file'], "a") as lf:
         lf.write(time.strftime("%d/%m/%Y %H:%M:%S") + message + "\n")
