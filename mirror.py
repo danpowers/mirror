@@ -118,8 +118,7 @@ def mirror_directories(username, token, transfer_opts, config_file_paths, batch=
 
     try:
         if transfer_opts['deadline'] != 0:
-            deadline = \
-                time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time() + (transfer_opts['deadline']*3600)))
+            deadline = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time() + (transfer_opts['deadline']*3600)))
 
         t = api_client.Transfer(submission_id, transfer_opts['source_endpoint'], transfer_opts['destination_endpoint'],
                                 deadline=deadline, sync_level=3, label="Mirror script transfer")
