@@ -90,7 +90,7 @@ def activate_endpoints(username, token, transfer_opts, config_file_paths, batch=
                             log_message(endpoint + "requires new myproxy activation. This cannot be done in batch mode."
                                         , config_file_paths)
                             exit(1)
-                        print("Enter credentials to activate " + endpoint + "\n")
+                        print("Enter myproxy credentials to activate " + endpoint + "\n")
                         username, password = get_user_and_pass()
                         requirements['DATA'][3]['value'] = username
                         requirements['DATA'][4]['value'] = password
