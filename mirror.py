@@ -148,12 +148,6 @@ def batch_mode(config_file_paths):
 
 
 def config_mode(config_file_paths):
-    print("Enter Globus Credentials:\n")
-    username, password = get_user_and_pass()
-    token = get_token(username, password)
-    transfer_opts = input_transfer_opts()
-    activate_endpoints(username, token, transfer_opts, config_file_paths)
-
     if not os.path.exists(config_file_paths['config_dir']):
         os.makedirs(config_file_paths['config_dir'])
 
@@ -162,6 +156,12 @@ def config_mode(config_file_paths):
 
     if os.path.exists(config_file_paths['token_file']):
         os.remove(config_file_paths['token_file'])
+
+    print("Enter Globus Credentials:\n")
+    username, password = get_user_and_pass()
+    token = get_token(username, password)
+    transfer_opts = input_transfer_opts()
+    activate_endpoints(username, token, transfer_opts, config_file_paths)
 
     with open(config_file_paths['token_file'], "w") as tf:
         tf.write(token)
