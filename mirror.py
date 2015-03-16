@@ -102,6 +102,10 @@ def activate_endpoints(username, token, transfer_opts, config_file_paths, batch=
                 if requirements['code'] == "AutoActivationFailed":
                     log_message("Autoactivate of " + endpoint + " failed.", config_file_paths)
                     if requirements['oauth_server'] is not None:
+                        if batch is True:
+                            log_message(endpoint + " requires new oauth activation. This cannot be done " +
+                                        "in batch mode.", config_file_paths)
+                            exit(1)
                         print(endpoint + " requires OAuth activation.\n")
                         print("Activate this endpoint at the following URL and then run the script again:\n")
                         p1, p2 = endpoint.split("#")
