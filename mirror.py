@@ -21,9 +21,9 @@ https://github.com/globusonline/transfer-api-client-python
 
 Globus mirror script:
 
-Will mirror contents of directory tree at source_path on source_endpoint to destination_path on destination_endpoint. 
-Files in the destination directory will be overwritten if there is a file with the same name in the source directory 
-with a different hash value. Files in the destination directory that do not correspond to any file of the same name in 
+Will mirror contents of directory tree at source_path on source_endpoint to destination_path on destination_endpoint.
+Files in the destination directory will be overwritten if there is a file with the same name in the source directory
+with a different hash value. Files in the destination directory that do not correspond to any file of the same name in
 the source directory will not be overwritten or deleted.
 
 When run in either config or interactive mode, script will authenticate to Globus Online and retrieve a GOAUTH token
@@ -109,8 +109,8 @@ def activate_endpoints(username, token, transfer_opts, config_file_paths, batch=
                         exit(1)
                     elif requirements['DATA'][5]['value'] is not None:
                         if batch is True:
-                            log_message(endpoint + "requires new myproxy activation. This cannot be done in batch mode."
-                                        , config_file_paths)
+                            log_message(endpoint + " requires new myproxy activation. This cannot be done " +
+                                        "in batch mode.", config_file_paths)
                             exit(1)
                         print("Enter myproxy credentials to activate " + endpoint + "\n")
                         username, password = get_user_and_pass()
