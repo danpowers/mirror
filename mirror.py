@@ -14,6 +14,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Globus mirror script
+
+Requires python library for the Globus Online Transfer API, available here:
+
+https://github.com/globusonline/transfer-api-client-python
+
+Mirror contents of directory tree at source_path on source_endpoint to destination_path on destination_endpoint. Files
+in the destination directory will be overwritten if there is a file with the same name in the source directory with
+a different hash value. Files in the destination directory that do not correspond to any file of the same name in the
+source directory will not be overwritten or deleted.
+
+When run in either config or interactive mode, script will authenticate to Globus Online and retrieve a GOAUTH token
+for Globus account to be used. Script will cache this token if run in config mode. When run in batch mode, script will
+use the GOAUTH token cached from config mode.
+
+Script will attempt to autoactivate endpoints. Failing autoactivation, script will - in interactive or config modes -
+determine if endpoint uses myproxy or oauth, and will prompt user for myproxy credentials or refer them to a URL
+for oauth activation as appropriate. When run in batch mode, all endpoints must be activated or able to be
+autoactivated, or the script will log an appropriate message and exit.
+"""
+
 import time
 import json
 import getpass
