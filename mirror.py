@@ -15,16 +15,16 @@
 # limitations under the License.
 
 """
-Globus mirror script
-
 Requires python library for the Globus Online Transfer API, available here:
 
 https://github.com/globusonline/transfer-api-client-python
 
-Mirror contents of directory tree at source_path on source_endpoint to destination_path on destination_endpoint. Files
-in the destination directory will be overwritten if there is a file with the same name in the source directory with
-a different hash value. Files in the destination directory that do not correspond to any file of the same name in the
-source directory will not be overwritten or deleted.
+Globus mirror script:
+
+Will mirror contents of directory tree at source_path on source_endpoint to destination_path on destination_endpoint. 
+Files in the destination directory will be overwritten if there is a file with the same name in the source directory 
+with a different hash value. Files in the destination directory that do not correspond to any file of the same name in 
+the source directory will not be overwritten or deleted.
 
 When run in either config or interactive mode, script will authenticate to Globus Online and retrieve a GOAUTH token
 for Globus account to be used. Script will cache this token if run in config mode. When run in batch mode, script will
