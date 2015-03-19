@@ -26,13 +26,13 @@ Files in the destination directory will be overwritten if there is a file with t
 with a different hash value. Files in the destination directory that do not correspond to any file of the same name in
 the source directory will not be overwritten or deleted.
 
-When run in either config or interactive mode, script will authenticate to Globus Online and retrieve a GOAUTH token
-for Globus account to be used. Script will cache this token if run in config mode. When run in batch mode, script will
-use the GOAUTH token cached from config mode.
+When run in either batch_setup or interactive mode, script will authenticate to Globus Online and retrieve a GOAUTH
+token for Globus account to be used. Script will cache this token if run in batch_setup mode. When run in batch_start
+mode, script will use the GOAUTH token cached from batch_setup mode.
 
-Script will attempt to autoactivate endpoints. Failing autoactivation, script will - in interactive or config modes -
-determine if endpoint uses myproxy or oauth, and will prompt user for myproxy credentials or refer them to a URL
-for oauth activation as appropriate. When run in batch mode, all endpoints must be activated or able to be
+Script will attempt to autoactivate endpoints. Failing autoactivation, script will - in interactive or batch_setup
+modes - determine if endpoint uses myproxy or oauth, and will prompt user for myproxy credentials or refer them to a
+URL for oauth activation as appropriate. When run in batch mode, all endpoints must be activated or able to be
 autoactivated, or the script will log an appropriate message and exit.
 """
 
@@ -59,6 +59,11 @@ def set_config_file_paths():
     return config_file_paths
 
 
+def init_config_dir(config_file_paths):
+    if not os.path.exists(config_file_paths['config_dir']):
+        os.makedirs(config_file_paths['config_dir'])
+
+
 def get_token(username, password):
     try:
         _, _, get_token.token = get_access_token(username, password, ca_certs=None)
@@ -68,22 +73,30 @@ def get_token(username, password):
     return get_token.token
 
 
-def input_transfer_opts():
-    transfer_opts = dict(source_endpoint=raw_input("Enter source endpoint name: "),
-                         source_path=raw_input("Enter source endpoint path: "),
-                         destination_endpoint=raw_input("Enter destination endpoint name: "),
-                         destination_path=raw_input("Enter destination endpoint path: "),
-                         deadline=raw_input("Enter transfer deadline in hours (enter '0' for none): "))
-    try:
-        transfer_opts['deadline'] = int(transfer_opts['deadline'])
-        if transfer_opts['deadline'] < 0:
-            print("Transfer deadline must be >= 0\n")
-            exit(1)
-    except Exception as e:
-        print("Bad value: " + transfer_opts['deadline'] + "\n" + str(e))
-        exit(1)
+def input_transfer_list():
+    transfer_list = []
+    more = True
 
-    return transfer_opts
+    while more:
+        transfer = dict(source_endpoint=raw_input("Enter source endpoint name: "),
+                             source_path=raw_input("Enter source endpoint path: "),
+                             destination_endpoint=raw_input("Enter destination endpoint name: "),
+                             destination_path=raw_input("Enter destination endpoint path: "),
+                             deadline=raw_input("Enter transfer deadline in hours (enter '0' for none): "))
+        try:
+            transfer['deadline'] = int(transfer['deadline'])
+            if transfer['deadline'] < 0:
+                print("Transfer deadline must be >= 0\n")
+                exit(1)
+        except Exception as e:
+            print("Bad value: " + transfer['deadline'] + "\n" + str(e))
+            exit(1)
+        c = raw_input("Add another transfer (y/n): ")
+        if c != "y":
+            more = False
+        transfer_list.append(transfer)
+
+    return transfer_list
 
 
 def get_user_and_pass():
@@ -92,9 +105,9 @@ def get_user_and_pass():
     return username, password
 
 
-def activate_endpoints(username, token, transfer_opts, config_file_paths, batch=False):
+def activate_endpoints(username, token, transfer, config_file_paths, batch=False):
     api = api_client.TransferAPIClient(username, goauth=token)
-    for endpoint in transfer_opts['source_endpoint'], transfer_opts['destination_endpoint']:
+    for endpoint in transfer['source_endpoint'], transfer['destination_endpoint']:
         try:
             _, _, data = api.endpoint(endpoint)
             if data['activated'] is not True:
@@ -135,20 +148,20 @@ def activate_endpoints(username, token, transfer_opts, config_file_paths, batch=
     return api
 
 
-def mirror_directories(username, token, transfer_opts, config_file_paths, batch=False):
-    api = activate_endpoints(username, token, transfer_opts, config_file_paths, batch)
+def mirror_directories(username, token, transfer, config_file_paths, batch=False):
+    api = activate_endpoints(username, token, transfer, config_file_paths, batch)
     _, _, result = api.transfer_submission_id()
     submission_id = result["value"]
 
     deadline = None
 
     try:
-        if transfer_opts['deadline'] != 0:
-            deadline = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time() + (transfer_opts['deadline']*3600)))
+        if transfer['deadline'] != 0:
+            deadline = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time() + (transfer['deadline']*3600)))
 
-        t = api_client.Transfer(submission_id, transfer_opts['source_endpoint'], transfer_opts['destination_endpoint'],
+        t = api_client.Transfer(submission_id, transfer['source_endpoint'], transfer['destination_endpoint'],
                                 deadline=deadline, sync_level=3, label="Mirror script transfer")
-        t.add_item(transfer_opts['source_path'], transfer_opts['destination_path'], recursive=True)
+        t.add_item(transfer['source_path'], transfer['destination_path'], recursive=True)
         status, reason, result = api.transfer(t)
         if result['code'] != "Accepted":
             log_message("Transfer job: " + submission_id + " not accepted:\n" +
@@ -160,9 +173,9 @@ def mirror_directories(username, token, transfer_opts, config_file_paths, batch=
         exit(1)
 
 
-def batch_mode(config_file_paths):
+def batch_start_mode(config_file_paths):
     with open(config_file_paths['config_file'], "r") as cf:
-        transfer_opts = json.load(cf)
+        transfer_list = json.load(cf)
 
     with open(config_file_paths['token_file'], "r") as tf:
         token = tf.read()
@@ -170,13 +183,11 @@ def batch_mode(config_file_paths):
     username, _ = token.split("|", 1)
     _, username = username.split("=", 1)
 
-    mirror_directories(username, token, transfer_opts, config_file_paths, batch=True)
+    for transfer in transfer_list:
+        mirror_directories(username, token, transfer, config_file_paths, batch=True)
 
 
-def config_mode(config_file_paths):
-    if not os.path.exists(config_file_paths['config_dir']):
-        os.makedirs(config_file_paths['config_dir'])
-
+def batch_setup_mode(config_file_paths):
     if os.path.exists(config_file_paths['config_file']):
         os.remove(config_file_paths['config_file'])
 
@@ -186,15 +197,16 @@ def config_mode(config_file_paths):
     print("Enter Globus Credentials:\n")
     username, password = get_user_and_pass()
     token = get_token(username, password)
-    transfer_opts = input_transfer_opts()
-    activate_endpoints(username, token, transfer_opts, config_file_paths)
+    transfer_list = input_transfer_list()
+    for transfer in transfer_list:
+        activate_endpoints(username, token, transfer, config_file_paths)
 
     with open(config_file_paths['token_file'], "w") as tf:
         tf.write(token)
     print("Token saved to: " + config_file_paths['token_file'] + "\n")
 
     with open(config_file_paths['config_file'], "w") as cf:
-        json.dump(transfer_opts, cf)
+        json.dump(transfer_list, cf)
     print("Config saved to: " + config_file_paths['config_file'] + "\n")
 
 
@@ -202,28 +214,29 @@ def interactive_mode(config_file_paths):
     print("Enter Globus Credentials:\n")
     username, password = get_user_and_pass()
     token = get_token(username, password)
-    transfer_opts = input_transfer_opts()
-    mirror_directories(username, token, transfer_opts, config_file_paths)
+    transfer_list = input_transfer_list()
+    for transfer in transfer_list:
+        mirror_directories(username, token, transfer, config_file_paths)
 
 
 def parse_arguments():
     p = argparse.ArgumentParser()
 
-    p.add_argument("-c", "--config", action="store_true",
+    p.add_argument("-s", "--batch_setup", action="store_true",
                    help="Write config file, pull GOAUTH token and cache it to prepare for batch operation.\n" +
                         "Must run this prior to running script in batch mode.")
-    p.add_argument("-b", "--batch", action="store_true",
+    p.add_argument("-b", "--batch_start", action="store_true",
                    help="Run script in batch mode using stored token and options stored in config file.")
     p.add_argument("-i", "--interactive", action="store_true",
                    help="Run script in interactive mode.")
 
     a = p.parse_args()
 
-    if (a.config and a.batch) or (a.config and a.interactive) or (a.interactive and a.batch):
+    if (a.batch_setup and a.batch_start) or (a.batch_setup and a.interactive) or (a.interactive and a.batch_start):
         print "Set only one of --config, --batch, or --interactive"
         exit(1)
 
-    if not a.config and not a.batch and not a.interactive:
+    if not a.batch_setup and not a.batch_start and not a.interactive:
         p.print_help()
         exit(0)
 
@@ -233,12 +246,13 @@ def parse_arguments():
 def main():
     args = parse_arguments()
     paths = set_config_file_paths()
+    init_config_dir(paths)
 
-    if args.batch:
-        batch_mode(paths)
+    if args.batch_start:
+        batch_start_mode(paths)
         exit(0)
-    elif args.config:
-        config_mode(paths)
+    elif args.batch_setup:
+        batch_setup_mode(paths)
         exit(0)
     elif args.interactive:
         interactive_mode(paths)
