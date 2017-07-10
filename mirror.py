@@ -222,7 +222,7 @@ def interactive_mode(config_file_paths):
 def parse_arguments():
     p = argparse.ArgumentParser()
 
-    p.add_argument("-s", "--batch_setup", action="store_true",
+    p.add_argument("-t", "--test", action="store_true",
                    help="Write config file, pull GOAUTH token and cache it to prepare for batch operation.\n" +
                         "Must run this prior to running script in batch mode.")
     p.add_argument("-b", "--batch_start", action="store_true",
@@ -232,11 +232,11 @@ def parse_arguments():
 
     a = p.parse_args()
 
-    if (a.batch_setup and a.batch_start) or (a.batch_setup and a.interactive) or (a.interactive and a.batch_start):
+    if (a.test and a.batch_start) or (a.test and a.interactive) or (a.interactive and a.batch_start):
         print "Set only one of --config, --batch, or --interactive"
         exit(1)
 
-    if not a.batch_setup and not a.batch_start and not a.interactive:
+    if not a.test and not a.batch_start and not a.interactive:
         p.print_help()
         exit(0)
 
@@ -251,7 +251,7 @@ def main():
     if args.batch_start:
         batch_start_mode(paths)
         exit(0)
-    elif args.batch_setup:
+    elif args.test:
         batch_setup_mode(paths)
         exit(0)
     elif args.interactive:
